@@ -1,0 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:wght@400;500;700&family=DM+Sans:wght@400;500;700&family=Libre+Baskerville:wght@400;700&family=Lora:wght@400;600;700&family=Oswald:wght@400;500;700&family=Playfair+Display:wght@400;600;700&family=Raleway:wght@400;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply m-0 bg-stone-100 text-stone-900;
+  font-family: "DM Sans", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input[type='range'] {
+  @apply accent-amber-700;
+}
