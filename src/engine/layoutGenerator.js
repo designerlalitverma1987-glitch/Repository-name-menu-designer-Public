@@ -1,3 +1,5 @@
+import { getIconById } from '../data/designAssets';
+
 const FSSAI_VEG_COLOR = '#2e7d32';
 const FSSAI_NON_VEG_COLOR = '#c62828';
 
@@ -400,6 +402,10 @@ function getTypographyStyles(fontStyles, stylePreset) {
 }
 
 function getBackgroundDefinition(backgroundStyle) {
+  if (backgroundStyle === 'none') {
+    return { defs: '', fill: 'transparent' };
+  }
+
   if (backgroundStyle === 'marbleTexture') {
     return {
       defs: `
@@ -426,6 +432,20 @@ function getBackgroundDefinition(backgroundStyle) {
         </pattern>
       `,
       fill: 'url(#menu-paper)'
+    };
+  }
+
+  if (backgroundStyle === 'woodTexture') {
+    return {
+      defs: `
+        <pattern id="menu-wood" patternUnits="userSpaceOnUse" width="120" height="120">
+          <rect width="120" height="120" fill="#8C6239" />
+          <path d="M0 18 C30 8, 80 26, 120 16" stroke="#A5764A" stroke-width="2" fill="none" />
+          <path d="M0 48 C40 38, 78 58, 120 46" stroke="#7A5332" stroke-width="1.8" fill="none" />
+          <path d="M0 86 C25 76, 72 96, 120 82" stroke="#9C6B3F" stroke-width="2" fill="none" />
+        </pattern>
+      `,
+      fill: 'url(#menu-wood)'
     };
   }
 
@@ -475,6 +495,102 @@ function sectionDecoration(sectionStyle, x, y, width, lineHeight, color) {
   return '';
 }
 
+function renderIconElement(element) {
+  const icon = getIconById(element.assetId);
+  if (!icon) {
+    return '';
+  }
+
+  const sx = element.width / 24;
+  const sy = element.height / 24;
+  const rotationCx = element.width / 2;
+  const rotationCy = element.height / 2;
+
+  const nodes = icon.nodes
+    .map((node) => {
+      const [tag, attrs] = node;
+      const attrsText = Object.entries(attrs)
+        .map(([key, value]) => `${key}="${value}"`)
+        .join(' ');
+      return `<${tag} ${attrsText} />`;
+    })
+    .join('');
+
+  return `
+    <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+      <g transform="scale(${sx} ${sy})" fill="none" stroke="${element.color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        ${nodes}
+      </g>
+    </g>
+  `;
+}
+
+function renderPrimitiveElement(element) {
+  const rotationCx = element.width / 2;
+  const rotationCy = element.height / 2;
+
+  if (element.elementType === 'line') {
+    return `
+      <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+        <line x1="0" y1="${element.height / 2}" x2="${element.width}" y2="${element.height / 2}" stroke="${element.color}" stroke-width="2" />
+      </g>
+    `;
+  }
+
+  if (element.elementType === 'divider') {
+    return `
+      <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+        <line x1="0" y1="${element.height / 2}" x2="${element.width}" y2="${element.height / 2}" stroke="${element.color}" stroke-width="2" stroke-dasharray="3 4" />
+      </g>
+    `;
+  }
+
+  if (element.elementType === 'rect') {
+    return `
+      <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+        <rect x="0" y="0" width="${element.width}" height="${element.height}" rx="6" fill="none" stroke="${element.color}" stroke-width="2" />
+      </g>
+    `;
+  }
+
+  if (element.elementType === 'badge') {
+    return `
+      <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+        <circle cx="${element.width / 2}" cy="${element.height / 2}" r="${Math.min(element.width, element.height) / 2}" fill="none" stroke="${element.color}" stroke-width="2" />
+      </g>
+    `;
+  }
+
+  if (element.elementType === 'leaf') {
+    return `
+      <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+        <path d="M2 ${element.height - 2} C ${element.width * 0.3} ${element.height * 0.2}, ${element.width * 0.7} ${element.height * 0.1}, ${element.width - 2} 2 C ${element.width * 0.9} ${element.height * 0.6}, ${element.width * 0.5} ${element.height * 0.95}, 2 ${element.height - 2} Z" fill="none" stroke="${element.color}" stroke-width="2" />
+      </g>
+    `;
+  }
+
+  if (element.elementType === 'separator') {
+    return `
+      <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+        <path d="M0 ${element.height / 2} C ${element.width * 0.15} ${element.height * 0.1}, ${element.width * 0.3} ${element.height * 0.9}, ${element.width * 0.45} ${element.height / 2} C ${element.width * 0.6} ${element.height * 0.1}, ${element.width * 0.75} ${element.height * 0.9}, ${element.width} ${element.height / 2}" fill="none" stroke="${element.color}" stroke-width="2" />
+      </g>
+    `;
+  }
+
+  return `
+    <g transform="translate(${element.x} ${element.y}) rotate(${element.rotation} ${rotationCx} ${rotationCy})" opacity="${element.opacity}">
+      <polygon points="${element.width * 0.5},0 ${element.width * 0.62},${element.height * 0.35} ${element.width},${element.height * 0.35} ${element.width * 0.7},${element.height * 0.58} ${element.width * 0.82},${element.height} ${element.width * 0.5},${element.height * 0.72} ${element.width * 0.18},${element.height} ${element.width * 0.3},${element.height * 0.58} 0,${element.height * 0.35} ${element.width * 0.38},${element.height * 0.35}" fill="none" stroke="${element.color}" stroke-width="2" />
+    </g>
+  `;
+}
+
+function renderPlacedElement(element) {
+  if (element.library === 'icon') {
+    return renderIconElement(element);
+  }
+  return renderPrimitiveElement(element);
+}
+
 export function generateSvgMarkup({
   layout,
   page,
@@ -483,7 +599,8 @@ export function generateSvgMarkup({
   theme,
   fontStyles,
   logoDataUrl,
-  backgroundStyle = 'plainWhite'
+  backgroundStyle = 'plainWhite',
+  placedElements = []
 }) {
   if (!layout) {
     return '';
@@ -494,6 +611,8 @@ export function generateSvgMarkup({
   const background = getBackgroundDefinition(backgroundStyle);
 
   const logoX = outer.x + outer.width / 2 - logoSize / 2;
+  const belowElements = placedElements.filter((element) => element.layer === 'below');
+  const aboveElements = placedElements.filter((element) => element.layer !== 'below');
 
   const parts = [
     `<svg width="${page.width}" height="${page.height}" viewBox="0 0 ${page.width} ${page.height}" xmlns="http://www.w3.org/2000/svg">`,
@@ -501,7 +620,8 @@ export function generateSvgMarkup({
     `<rect x="0" y="0" width="${page.width}" height="${page.height}" fill="${background.fill}"/>`,
     `<rect x="${outer.x}" y="${outer.y}" width="${outer.width}" height="${outer.height}" rx="${outer.radius}" fill="${
       theme.surface
-    }" stroke="${theme.border}" stroke-width="1.4"/>`
+    }" stroke="${theme.border}" stroke-width="1.4"/>`,
+    belowElements.map((element) => renderPlacedElement(element)).join('')
   ];
 
   if (logoDataUrl) {
@@ -621,6 +741,7 @@ export function generateSvgMarkup({
     });
   });
 
+  parts.push(aboveElements.map((element) => renderPlacedElement(element)).join(''));
   parts.push('</svg>');
 
   return parts.join('');

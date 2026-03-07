@@ -1,0 +1,24 @@
+{
+  "id": "bar-menu",
+  "name": "Bar Menu",
+  "styleKey": "barMenu",
+  "themeKey": "darkTheme",
+  "backgroundStyle": "darkTheme",
+  "densityMode": "normal",
+  "typography": { "title": 34, "category": 24, "item": 17, "description": 13, "price": 16 },
+  "spacing": { "itemGap": 15, "descriptionGap": 4, "categoryGap": 18, "columnGap": 24, "padding": 26 },
+  "fontStyles": {
+    "titleFont": "Montserrat",
+    "sectionFont": "Montserrat",
+    "itemFont": "Inter",
+    "descriptionFont": "Inter",
+    "priceFont": "Inter"
+  },
+  "thumbnail": {
+    "background": "#111827",
+    "border": "#374151",
+    "text": "#F9FAFB",
+    "divider": "#FB923C",
+    "titleFont": "Montserrat"
+  }
+}

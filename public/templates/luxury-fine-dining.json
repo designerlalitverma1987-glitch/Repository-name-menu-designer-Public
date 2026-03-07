@@ -1,0 +1,24 @@
+{
+  "id": "luxury-fine-dining",
+  "name": "Luxury Fine Dining",
+  "styleKey": "premiumFineDining",
+  "themeKey": "elegantGold",
+  "backgroundStyle": "marbleTexture",
+  "densityMode": "relaxed",
+  "typography": { "title": 36, "category": 26, "item": 18, "description": 14, "price": 17 },
+  "spacing": { "itemGap": 18, "descriptionGap": 5, "categoryGap": 24, "columnGap": 28, "padding": 30 },
+  "fontStyles": {
+    "titleFont": "Libre Baskerville",
+    "sectionFont": "Libre Baskerville",
+    "itemFont": "Lora",
+    "descriptionFont": "Lora",
+    "priceFont": "Lora"
+  },
+  "thumbnail": {
+    "background": "#1F1A12",
+    "border": "#9F7C2B",
+    "text": "#EAC66E",
+    "divider": "#C49A33",
+    "titleFont": "Libre Baskerville"
+  }
+}

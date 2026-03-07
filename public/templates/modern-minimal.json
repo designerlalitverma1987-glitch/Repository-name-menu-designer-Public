@@ -1,0 +1,24 @@
+{
+  "id": "modern-minimal",
+  "name": "Modern Minimal",
+  "styleKey": "modernMinimal",
+  "themeKey": "minimalBlack",
+  "backgroundStyle": "plainWhite",
+  "densityMode": "compact",
+  "typography": { "title": 30, "category": 22, "item": 16, "description": 12, "price": 15 },
+  "spacing": { "itemGap": 13, "descriptionGap": 4, "categoryGap": 14, "columnGap": 20, "padding": 24 },
+  "fontStyles": {
+    "titleFont": "Montserrat",
+    "sectionFont": "Montserrat",
+    "itemFont": "Inter",
+    "descriptionFont": "Inter",
+    "priceFont": "Inter"
+  },
+  "thumbnail": {
+    "background": "#FFFFFF",
+    "border": "#D6D3D1",
+    "text": "#111827",
+    "divider": "#9CA3AF",
+    "titleFont": "Montserrat"
+  }
+}

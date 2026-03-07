@@ -1,0 +1,24 @@
+{
+  "id": "classic-restaurant",
+  "name": "Classic Restaurant",
+  "styleKey": "classic",
+  "themeKey": "minimalBlack",
+  "backgroundStyle": "plainWhite",
+  "densityMode": "normal",
+  "typography": { "title": 32, "category": 24, "item": 17, "description": 13, "price": 16 },
+  "spacing": { "itemGap": 16, "descriptionGap": 4, "categoryGap": 18, "columnGap": 24, "padding": 26 },
+  "fontStyles": {
+    "titleFont": "Playfair Display",
+    "sectionFont": "Playfair Display",
+    "itemFont": "Lora",
+    "descriptionFont": "Lora",
+    "priceFont": "Lora"
+  },
+  "thumbnail": {
+    "background": "#F8F8F8",
+    "border": "#D6D3D1",
+    "text": "#1F2937",
+    "divider": "#A8A29E",
+    "titleFont": "Playfair Display"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "street-food-menu",
+  "name": "Street Food Menu",
+  "styleKey": "streetFoodMenu",
+  "themeKey": "freshGreen",
+  "backgroundStyle": "woodTexture",
+  "densityMode": "compact",
+  "typography": { "title": 34, "category": 24, "item": 17, "description": 12, "price": 16 },
+  "spacing": { "itemGap": 14, "descriptionGap": 4, "categoryGap": 16, "columnGap": 22, "padding": 24 },
+  "fontStyles": {
+    "titleFont": "Poppins",
+    "sectionFont": "Poppins",
+    "itemFont": "Open Sans",
+    "descriptionFont": "Open Sans",
+    "priceFont": "Open Sans"
+  },
+  "thumbnail": {
+    "background": "#8C6239",
+    "border": "#6F4A2C",
+    "text": "#FDE68A",
+    "divider": "#F59E0B",
+    "titleFont": "Poppins"
+  }
+}

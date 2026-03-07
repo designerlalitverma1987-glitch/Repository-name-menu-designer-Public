@@ -116,15 +116,37 @@ export const STYLE_PRESETS = {
     dividerStyle: 'dotted',
     spacingMultiplier: 1.05,
     defaultTheme: 'cafeBrown'
+  },
+  streetFoodMenu: {
+    key: 'streetFoodMenu',
+    label: 'Street Food Menu',
+    titleFont: 'Poppins',
+    bodyFont: 'Open Sans',
+    sectionStyle: 'caps',
+    dividerStyle: 'dotted',
+    spacingMultiplier: 0.96,
+    defaultTheme: 'freshGreen'
+  },
+  barMenu: {
+    key: 'barMenu',
+    label: 'Bar Menu',
+    titleFont: 'Montserrat',
+    bodyFont: 'Inter',
+    sectionStyle: 'underline',
+    dividerStyle: 'solid',
+    spacingMultiplier: 1,
+    defaultTheme: 'darkTheme'
   }
 };
 
 export const BACKGROUND_STYLES = [
+  { value: 'none', label: 'None' },
   { value: 'plainWhite', label: 'Plain White' },
   { value: 'warmBeige', label: 'Warm Beige' },
-  { value: 'darkTheme', label: 'Dark Theme' },
+  { value: 'paperTexture', label: 'Paper Texture' },
   { value: 'marbleTexture', label: 'Marble Texture' },
-  { value: 'paperTexture', label: 'Paper Texture' }
+  { value: 'woodTexture', label: 'Wood Texture' },
+  { value: 'darkTheme', label: 'Dark Theme' }
 ];
 
 export const THEME_PRESETS = {

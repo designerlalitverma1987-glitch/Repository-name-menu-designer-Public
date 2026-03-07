@@ -1,0 +1,24 @@
+{
+  "id": "cafe-menu",
+  "name": "Cafe Menu",
+  "styleKey": "cafeMenu",
+  "themeKey": "cafeBrown",
+  "backgroundStyle": "paperTexture",
+  "densityMode": "normal",
+  "typography": { "title": 32, "category": 23, "item": 17, "description": 13, "price": 16 },
+  "spacing": { "itemGap": 16, "descriptionGap": 4, "categoryGap": 19, "columnGap": 24, "padding": 26 },
+  "fontStyles": {
+    "titleFont": "Poppins",
+    "sectionFont": "Poppins",
+    "itemFont": "DM Sans",
+    "descriptionFont": "DM Sans",
+    "priceFont": "DM Sans"
+  },
+  "thumbnail": {
+    "background": "#F4E8D8",
+    "border": "#D7B48E",
+    "text": "#7B3F00",
+    "divider": "#A55D31",
+    "titleFont": "Poppins"
+  }
+}
