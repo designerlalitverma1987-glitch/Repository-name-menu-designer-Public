@@ -1,5 +1,9 @@
 const FSSAI_VEG_COLOR = '#2e7d32';
-const FSSAI_NON_VEG_COLOR = '#8B0000';
+const FSSAI_NON_VEG_COLOR = '#c62828';
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
 
 function escapeXml(value) {
   return String(value)
@@ -88,8 +92,51 @@ function scaleTypography(typography, scale) {
   };
 }
 
-function scaleSpacing(spacing, scale) {
+function applyDensityMode(spacing, densityMode, totalItems, columns, contentHeight, typography, template) {
+  const densityMultiplier =
+    densityMode === 'compact' ? 0.82 : densityMode === 'relaxed' ? 1.2 : 1;
+
+  let itemFactor = densityMultiplier;
+  let sectionFactor = densityMultiplier;
+  let descriptionFactor = densityMultiplier;
+
+  if (densityMode === 'auto') {
+    const avgPerColumn = totalItems > 0 ? totalItems / columns : 0;
+
+    let scarcityBoost = 1;
+    if (avgPerColumn <= 4) scarcityBoost = 1.9;
+    else if (avgPerColumn <= 7) scarcityBoost = 1.6;
+    else if (avgPerColumn <= 10) scarcityBoost = 1.35;
+    else if (avgPerColumn <= 14) scarcityBoost = 1.15;
+
+    const estimatedBlockHeight =
+      typography.item * typography.lineHeight +
+      typography.description * typography.lineHeight +
+      spacing.descriptionGap +
+      spacing.itemGap;
+    const estimatedColumnHeight = Math.max(estimatedBlockHeight, 1) * avgPerColumn;
+    const fillRatio = contentHeight / Math.max(estimatedColumnHeight, 1);
+    const fillBoost = clamp(fillRatio, 1, 1.75);
+
+    itemFactor = scarcityBoost * fillBoost;
+    sectionFactor = clamp(itemFactor * 0.9, 1, 2.2);
+    descriptionFactor = clamp(1 + (itemFactor - 1) * 0.6, 1, 1.8);
+  }
+
+  const templateFactor = template?.spacingMultiplier || 1;
+
   return {
+    margin: spacing.margin,
+    padding: spacing.padding,
+    itemGap: spacing.itemGap * itemFactor * templateFactor,
+    categoryGap: spacing.categoryGap * sectionFactor * templateFactor,
+    descriptionGap: spacing.descriptionGap * descriptionFactor,
+    columnGap: spacing.columnGap * templateFactor
+  };
+}
+
+function scaleSpacing(spacing, scale, densityMode, totalItems, columns, contentHeight, typography, template) {
+  const scaled = {
     margin: spacing.margin,
     padding: spacing.padding * scale,
     categoryGap: spacing.categoryGap * scale,
@@ -97,6 +144,16 @@ function scaleSpacing(spacing, scale) {
     columnGap: spacing.columnGap * scale,
     descriptionGap: spacing.descriptionGap * scale
   };
+
+  return applyDensityMode(
+    scaled,
+    densityMode,
+    totalItems,
+    columns,
+    contentHeight,
+    typography,
+    template
+  );
 }
 
 function toPriceText(value) {
@@ -146,7 +203,6 @@ function measureMenuItem(item, columnWidth, typography, spacing) {
     priceText,
     nameLines,
     descriptionLines,
-    descMaxWidth,
     nameHeight,
     descriptionHeight,
     leaderStart,
@@ -211,8 +267,20 @@ function assignCategoriesToColumns(categories, columnCount) {
   return columns;
 }
 
-export function computeMenuLayout({ menu, page, columns, typography, spacing, radius }) {
+export function computeMenuLayout({
+  menu,
+  page,
+  columns,
+  typography,
+  spacing,
+  radius,
+  densityMode = 'normal',
+  template,
+  hasLogo = false,
+  logoSize = 80
+}) {
   const safeColumns = Math.max(1, Math.min(3, columns));
+  const totalItems = menu.categories.reduce((sum, category) => sum + category.items.length, 0);
 
   const outer = {
     x: spacing.margin,
@@ -225,12 +293,26 @@ export function computeMenuLayout({ menu, page, columns, typography, spacing, ra
   let scale = 1;
   let layout = null;
 
-  for (let attempt = 0; attempt < 24; attempt += 1) {
+  for (let attempt = 0; attempt < 26; attempt += 1) {
     const scaledTypography = scaleTypography(typography, scale);
-    const scaledSpacing = scaleSpacing(spacing, scale);
+
+    const logoBlock = hasLogo ? logoSize + 12 : 0;
+    const headerHeight = logoBlock + scaledTypography.title + 16;
+    const preContentHeight = outer.height - spacing.padding * 2 - headerHeight;
+
+    const scaledSpacing = scaleSpacing(
+      spacing,
+      scale,
+      densityMode,
+      totalItems,
+      safeColumns,
+      preContentHeight,
+      scaledTypography,
+      template
+    );
 
     const contentWidth = outer.width - scaledSpacing.padding * 2;
-    const contentHeight = outer.height - scaledSpacing.padding * 2 - scaledTypography.title * 1.45;
+    const contentHeight = outer.height - scaledSpacing.padding * 2 - headerHeight;
     const columnWidth = (contentWidth - scaledSpacing.columnGap * (safeColumns - 1)) / safeColumns;
 
     const categories = menu.categories.map((category) =>
@@ -244,8 +326,10 @@ export function computeMenuLayout({ menu, page, columns, typography, spacing, ra
       scale,
       overflow: maxHeight > contentHeight,
       outer,
-      contentTop: outer.y + scaledSpacing.padding + scaledTypography.title * 1.45,
-      titleY: outer.y + scaledSpacing.padding + scaledTypography.title,
+      logoY: outer.y + scaledSpacing.padding,
+      logoSize,
+      contentTop: outer.y + scaledSpacing.padding + headerHeight,
+      titleY: outer.y + scaledSpacing.padding + logoBlock + scaledTypography.title,
       typography: scaledTypography,
       spacing: scaledSpacing,
       columns: columnsLayout.map((column, index) => {
@@ -260,7 +344,7 @@ export function computeMenuLayout({ menu, page, columns, typography, spacing, ra
       })
     };
 
-    if (!layout.overflow || scale <= 0.58) {
+    if (!layout.overflow || scale <= 0.55) {
       break;
     }
 
@@ -268,6 +352,13 @@ export function computeMenuLayout({ menu, page, columns, typography, spacing, ra
   }
 
   return layout;
+}
+
+function fontFamilyWithFallback(name, fallback = 'sans-serif') {
+  if (!name) {
+    return fallback;
+  }
+  return name.includes(' ') ? `'${name}', ${fallback}` : `${name}, ${fallback}`;
 }
 
 function buildFssaiIcon(type, x, y, size) {
@@ -288,58 +379,97 @@ function buildFssaiIcon(type, x, y, size) {
   `;
 }
 
-function getFonts(fontStyles, stylePreset) {
+function getTypographyStyles(fontStyles, stylePreset) {
   const bodyFallback = fontStyles.fontFamily || stylePreset.bodyFont || 'sans-serif';
 
   return {
-    title: fontStyles.titleFont || stylePreset.titleFont || bodyFallback,
-    item: fontStyles.itemFont || bodyFallback,
-    description: fontStyles.descriptionFont || bodyFallback,
-    price: fontStyles.priceFont || bodyFallback
+    titleFont: fontFamilyWithFallback(fontStyles.titleFont || stylePreset.titleFont, bodyFallback),
+    sectionFont: fontFamilyWithFallback(fontStyles.sectionFont || stylePreset.bodyFont, bodyFallback),
+    itemFont: fontFamilyWithFallback(fontStyles.itemFont || stylePreset.bodyFont, bodyFallback),
+    descriptionFont: fontFamilyWithFallback(
+      fontStyles.descriptionFont || stylePreset.bodyFont,
+      bodyFallback
+    ),
+    priceFont: fontFamilyWithFallback(fontStyles.priceFont || stylePreset.bodyFont, bodyFallback),
+    titleWeight: fontStyles.titleWeight || 700,
+    sectionWeight: fontStyles.sectionWeight || 700,
+    itemWeight: fontStyles.itemWeight || 700,
+    descriptionWeight: fontStyles.descriptionWeight || 400,
+    priceWeight: fontStyles.priceWeight || 700
   };
 }
 
-function renderDecorations(styleKey, outer, theme) {
-  if (styleKey === 'fineDining') {
-    return `<rect x="${outer.x + 10}" y="${outer.y + 10}" width="${outer.width - 20}" height="${
-      outer.height - 20
-    }" fill="none" stroke="${theme.accent}" stroke-width="1.2" />`;
+function getBackgroundDefinition(backgroundStyle) {
+  if (backgroundStyle === 'marbleTexture') {
+    return {
+      defs: `
+        <pattern id="menu-marble" patternUnits="userSpaceOnUse" width="120" height="120">
+          <rect width="120" height="120" fill="#F7F7F7" />
+          <path d="M0 20 C25 5, 70 30, 120 14" stroke="#D8D8D8" stroke-width="1.2" fill="none"/>
+          <path d="M0 65 C25 45, 70 80, 120 58" stroke="#DCDCDC" stroke-width="1" fill="none"/>
+          <path d="M0 105 C45 88, 75 124, 120 98" stroke="#D5D5D5" stroke-width="1.1" fill="none"/>
+        </pattern>
+      `,
+      fill: 'url(#menu-marble)'
+    };
   }
 
-  if (styleKey === 'cafe') {
+  if (backgroundStyle === 'paperTexture') {
+    return {
+      defs: `
+        <pattern id="menu-paper" patternUnits="userSpaceOnUse" width="48" height="48">
+          <rect width="48" height="48" fill="#F7F1E7" />
+          <circle cx="9" cy="11" r="0.8" fill="#E8DDCB" />
+          <circle cx="28" cy="20" r="0.7" fill="#E3D8C5" />
+          <circle cx="40" cy="37" r="0.9" fill="#E5D9C7" />
+          <path d="M2 24 L46 24" stroke="#EDE2D2" stroke-width="0.5" />
+        </pattern>
+      `,
+      fill: 'url(#menu-paper)'
+    };
+  }
+
+  if (backgroundStyle === 'warmBeige') {
+    return { defs: '', fill: '#F4E8D8' };
+  }
+
+  if (backgroundStyle === 'darkTheme') {
+    return { defs: '', fill: '#171717' };
+  }
+
+  return { defs: '', fill: '#FFFFFF' };
+}
+
+function dividerMarkup(style, x1, x2, y, color) {
+  if (style === 'none') {
+    return '';
+  }
+
+  if (style === 'double') {
     return `
-      <g opacity="0.18" stroke="${theme.accent}">
-        <line x1="${outer.x + 20}" y1="${outer.y + 60}" x2="${outer.x + outer.width - 20}" y2="${
-      outer.y + 60
-    }" stroke-width="1" />
-        <line x1="${outer.x + 20}" y1="${outer.y + outer.height - 60}" x2="${
-      outer.x + outer.width - 20
-    }" y2="${outer.y + outer.height - 60}" stroke-width="1" />
-      </g>
+      <line x1="${x1}" y1="${y - 1.5}" x2="${x2}" y2="${y - 1.5}" stroke="${color}" stroke-width="0.8" />
+      <line x1="${x1}" y1="${y + 1.5}" x2="${x2}" y2="${y + 1.5}" stroke="${color}" stroke-width="0.8" />
     `;
   }
 
-  if (styleKey === 'modern') {
-    return `<rect x="${outer.x}" y="${outer.y}" width="${outer.width}" height="16" fill="${
-      theme.accent
-    }" opacity="0.85" />`;
+  if (style === 'solid') {
+    return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${color}" stroke-width="1" />`;
   }
 
-  if (styleKey === 'street') {
-    return `
-      <rect x="${outer.x}" y="${outer.y}" width="9" height="${outer.height}" fill="${
-      theme.accent
-    }" opacity="0.8" />
-      <rect x="${outer.x + outer.width - 9}" y="${outer.y}" width="9" height="${outer.height}" fill="${
-      theme.accent
-    }" opacity="0.8" />
-    `;
+  return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${color}" stroke-width="1" stroke-dasharray="1 5" />`;
+}
+
+function sectionLabelByStyle(label, sectionStyle) {
+  return sectionStyle === 'caps' ? label.toUpperCase() : label;
+}
+
+function sectionDecoration(sectionStyle, x, y, width, lineHeight, color) {
+  if (sectionStyle === 'boxed') {
+    return `<rect x="${x - 8}" y="${y - lineHeight * 0.8}" width="${width + 16}" height="${lineHeight}" fill="none" stroke="${color}" stroke-width="1" rx="4" />`;
   }
 
-  if (styleKey === 'vintage') {
-    return `<rect x="${outer.x + 6}" y="${outer.y + 6}" width="${outer.width - 12}" height="${
-      outer.height - 12
-    }" fill="none" stroke="${theme.border}" stroke-width="1.2" stroke-dasharray="4 4" />`;
+  if (sectionStyle === 'underline') {
+    return `<line x1="${x}" y1="${y + 4}" x2="${x + width}" y2="${y + 4}" stroke="${color}" stroke-width="1" />`;
   }
 
   return '';
@@ -351,31 +481,48 @@ export function generateSvgMarkup({
   menuTitle,
   stylePreset,
   theme,
-  fontStyles
+  fontStyles,
+  logoDataUrl,
+  backgroundStyle = 'plainWhite'
 }) {
   if (!layout) {
     return '';
   }
 
-  const { outer, columns, typography, contentTop, titleY } = layout;
-  const fonts = getFonts(fontStyles, stylePreset);
+  const { outer, columns, typography, contentTop, titleY, logoY, logoSize } = layout;
+  const fonts = getTypographyStyles(fontStyles, stylePreset);
+  const background = getBackgroundDefinition(backgroundStyle);
+
+  const logoX = outer.x + outer.width / 2 - logoSize / 2;
 
   const parts = [
     `<svg width="${page.width}" height="${page.height}" viewBox="0 0 ${page.width} ${page.height}" xmlns="http://www.w3.org/2000/svg">`,
-    `<rect x="0" y="0" width="${page.width}" height="${page.height}" fill="${theme.background}"/>`,
+    background.defs ? `<defs>${background.defs}</defs>` : '',
+    `<rect x="0" y="0" width="${page.width}" height="${page.height}" fill="${background.fill}"/>`,
     `<rect x="${outer.x}" y="${outer.y}" width="${outer.width}" height="${outer.height}" rx="${outer.radius}" fill="${
       theme.surface
-    }" stroke="${theme.border}" stroke-width="1.4"/>`,
-    renderDecorations(stylePreset.key, outer, theme),
+    }" stroke="${theme.border}" stroke-width="1.4"/>`
+  ];
+
+  if (logoDataUrl) {
+    parts.push(
+      `<image href="${escapeXml(logoDataUrl)}" x="${logoX}" y="${logoY}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`
+    );
+  }
+
+  parts.push(
     `<text x="${outer.x + outer.width / 2}" y="${titleY}" text-anchor="middle" font-family="${escapeXml(
-      fonts.title
-    )}" font-size="${typography.title}" font-weight="700" letter-spacing="${typography.letterSpacing}" fill="${
-      theme.accent
-    }">${escapeXml(menuTitle || 'Restaurant Menu')}</text>`,
+      fonts.titleFont
+    )}" font-size="${typography.title}" font-weight="${fonts.titleWeight}" letter-spacing="${
+      typography.letterSpacing
+    }" fill="${theme.accent}">${escapeXml(menuTitle || 'Restaurant Menu')}</text>`
+  );
+
+  parts.push(
     `<line x1="${outer.x + 24}" y1="${contentTop - typography.item * 0.4}" x2="${
       outer.x + outer.width - 24
     }" y2="${contentTop - typography.item * 0.4}" stroke="${theme.border}" stroke-width="1"/>`
-  ];
+  );
 
   columns.forEach((column) => {
     column.categories.forEach((category) => {
@@ -387,14 +534,17 @@ export function generateSvgMarkup({
       parts.push(`<g class="menu-category" data-category-id="${category.id}">`);
 
       category.titleLines.forEach((line, lineIndex) => {
+        const label = sectionLabelByStyle(line, stylePreset.sectionStyle);
+        const y = categoryY + typography.category + lineIndex * categoryLineHeight;
+        const width = estimateTextWidth(label, typography.category, typography.letterSpacing);
+
+        parts.push(sectionDecoration(stylePreset.sectionStyle, column.x, y, width, categoryLineHeight, theme.accent));
         parts.push(
-          `<text x="${column.x}" y="${
-            categoryY + typography.category + lineIndex * categoryLineHeight
-          }" font-family="${escapeXml(fonts.title)}" font-size="${
-            typography.category
-          }" font-weight="700" letter-spacing="${typography.letterSpacing}" fill="${theme.accent}">${escapeXml(
-            line
-          )}</text>`
+          `<text x="${column.x}" y="${y}" font-family="${escapeXml(
+            fonts.sectionFont
+          )}" font-size="${typography.category}" font-weight="${fonts.sectionWeight}" letter-spacing="${
+            typography.letterSpacing
+          }" fill="${theme.accent}">${escapeXml(label)}</text>`
         );
       });
 
@@ -402,7 +552,7 @@ export function generateSvgMarkup({
         const itemStartY = categoryY + item.y;
         const itemNameY = itemStartY + typography.item;
         const iconX = column.x + item.xIcon;
-        const iconY = itemStartY + Math.max(0, (item.nameHeight - item.iconSize) / 2);
+        const iconY = itemNameY - item.iconSize * 0.78;
         const nameX = column.x + item.xName;
         const priceX = column.x + item.xPrice;
 
@@ -412,8 +562,8 @@ export function generateSvgMarkup({
         item.nameLines.forEach((line, lineIndex) => {
           parts.push(
             `<text x="${nameX}" y="${itemNameY + lineIndex * itemLineHeight}" font-family="${escapeXml(
-              fonts.item
-            )}" font-size="${typography.item}" font-weight="700" letter-spacing="${
+              fonts.itemFont
+            )}" font-size="${typography.item}" font-weight="${fonts.itemWeight}" letter-spacing="${
               typography.letterSpacing
             }" fill="${theme.text}">${escapeXml(line)}</text>`
           );
@@ -431,8 +581,8 @@ export function generateSvgMarkup({
 
         parts.push(
           `<text x="${priceX}" y="${itemNameY}" text-anchor="end" font-family="${escapeXml(
-            fonts.price
-          )}" font-size="${typography.price}" font-weight="700" letter-spacing="${
+            fonts.priceFont
+          )}" font-size="${typography.price}" font-weight="${fonts.priceWeight}" letter-spacing="${
             typography.letterSpacing
           }" fill="${theme.price}">${escapeXml(item.priceText)}</text>`
         );
@@ -446,15 +596,26 @@ export function generateSvgMarkup({
             lineIndex * descriptionLineHeight;
           parts.push(
             `<text x="${nameX}" y="${y}" font-family="${escapeXml(
-              fonts.description
-            )}" font-size="${typography.description}" font-weight="400" letter-spacing="${
-              typography.letterSpacing * 0.75
-            }" fill="#666">${escapeXml(line)}</text>`
+              fonts.descriptionFont
+            )}" font-size="${typography.description}" font-weight="${
+              fonts.descriptionWeight
+            }" letter-spacing="${typography.letterSpacing * 0.75}" fill="#666">${escapeXml(line)}</text>`
           );
         });
 
         parts.push('</g>');
       });
+
+      const categoryBottom = categoryY + category.height - layout.spacing.categoryGap * 0.4;
+      parts.push(
+        dividerMarkup(
+          stylePreset.dividerStyle,
+          column.x,
+          column.x + column.width,
+          categoryBottom,
+          theme.border
+        )
+      );
 
       parts.push('</g>');
     });

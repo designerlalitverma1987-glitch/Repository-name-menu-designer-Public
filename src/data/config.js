@@ -9,6 +9,10 @@ Butter Chicken - 320
 Dal Makhani - 240
 Veg Biryani - 260
 
+Category: Desserts
+Gulab Jamun - 140
+Saffron Rasmalai - 180
+
 Category: Drinks
 Mango Shake - 120
 Masala Soda - 60`;
@@ -26,12 +30,38 @@ export const TYPOGRAPHY_PRESETS = {
 };
 
 export const DEFAULT_FONT_STYLES = {
-  fontFamily: '"DM Sans", sans-serif',
-  titleFont: '',
-  itemFont: '',
-  descriptionFont: '',
-  priceFont: ''
+  fontFamily: 'DM Sans',
+  titleFont: 'Playfair Display',
+  sectionFont: 'Playfair Display',
+  itemFont: 'DM Sans',
+  descriptionFont: 'DM Sans',
+  priceFont: 'DM Sans',
+  titleWeight: 700,
+  sectionWeight: 700,
+  itemWeight: 700,
+  descriptionWeight: 400,
+  priceWeight: 700
 };
+
+export const FONT_FAMILIES = [
+  'Poppins',
+  'DM Sans',
+  'Playfair Display',
+  'Lora',
+  'Montserrat',
+  'Libre Baskerville',
+  'Open Sans',
+  'Roboto',
+  'Inter'
+];
+
+export const FONT_WEIGHTS = [
+  { value: 300, label: '300 Light' },
+  { value: 400, label: '400 Regular' },
+  { value: 500, label: '500 Medium' },
+  { value: 600, label: '600 Semi Bold' },
+  { value: 700, label: '700 Bold' }
+];
 
 const BASE_SPACING = {
   A5: { margin: 24, padding: 20, categoryGap: 16, itemGap: 14, columnGap: 16, descriptionGap: 4 },
@@ -39,72 +69,79 @@ const BASE_SPACING = {
   A3: { margin: 44, padding: 32, categoryGap: 22, itemGap: 18, columnGap: 30, descriptionGap: 4 }
 };
 
+export const DENSITY_MODES = [
+  { value: 'compact', label: 'Compact' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'relaxed', label: 'Relaxed' },
+  { value: 'auto', label: 'Auto Fill Page' }
+];
+
 export const STYLE_PRESETS = {
-  minimal: {
-    key: 'minimal',
-    label: 'Minimal',
-    titleFont: '"Playfair Display", serif',
-    bodyFont: '"DM Sans", sans-serif',
-    defaultTheme: 'minimalBlack',
-    decoration: 'minimal'
+  classic: {
+    key: 'classic',
+    label: 'Classic Restaurant',
+    titleFont: 'Playfair Display',
+    bodyFont: 'Lora',
+    sectionStyle: 'underline',
+    dividerStyle: 'dotted',
+    spacingMultiplier: 1,
+    defaultTheme: 'minimalBlack'
   },
-  cafe: {
-    key: 'cafe',
-    label: 'Cafe Style',
-    titleFont: '"Lora", serif',
-    bodyFont: '"Raleway", sans-serif',
-    defaultTheme: 'cafeBrown',
-    decoration: 'cafe'
+  modernMinimal: {
+    key: 'modernMinimal',
+    label: 'Modern Minimal',
+    titleFont: 'Montserrat',
+    bodyFont: 'Inter',
+    sectionStyle: 'caps',
+    dividerStyle: 'solid',
+    spacingMultiplier: 0.92,
+    defaultTheme: 'minimalBlack'
   },
-  fineDining: {
-    key: 'fineDining',
-    label: 'Fine Dining',
-    titleFont: '"Cormorant Garamond", serif',
-    bodyFont: '"Libre Baskerville", serif',
-    defaultTheme: 'elegantGold',
-    decoration: 'fineDining'
+  premiumFineDining: {
+    key: 'premiumFineDining',
+    label: 'Premium Fine Dining',
+    titleFont: 'Libre Baskerville',
+    bodyFont: 'Lora',
+    sectionStyle: 'boxed',
+    dividerStyle: 'double',
+    spacingMultiplier: 1.1,
+    defaultTheme: 'elegantGold'
   },
-  modern: {
-    key: 'modern',
-    label: 'Modern Restaurant',
-    titleFont: '"Bebas Neue", sans-serif',
-    bodyFont: '"DM Sans", sans-serif',
-    defaultTheme: 'darkTheme',
-    decoration: 'modern'
-  },
-  street: {
-    key: 'street',
-    label: 'Street Food',
-    titleFont: '"Oswald", sans-serif',
-    bodyFont: '"DM Sans", sans-serif',
-    defaultTheme: 'freshGreen',
-    decoration: 'street'
-  },
-  vintage: {
-    key: 'vintage',
-    label: 'Vintage',
-    titleFont: '"Playfair Display", serif',
-    bodyFont: '"Lora", serif',
-    defaultTheme: 'cafeBrown',
-    decoration: 'vintage'
+  cafeMenu: {
+    key: 'cafeMenu',
+    label: 'Cafe Menu',
+    titleFont: 'Poppins',
+    bodyFont: 'DM Sans',
+    sectionStyle: 'underline',
+    dividerStyle: 'dotted',
+    spacingMultiplier: 1.05,
+    defaultTheme: 'cafeBrown'
   }
 };
 
+export const BACKGROUND_STYLES = [
+  { value: 'plainWhite', label: 'Plain White' },
+  { value: 'warmBeige', label: 'Warm Beige' },
+  { value: 'darkTheme', label: 'Dark Theme' },
+  { value: 'marbleTexture', label: 'Marble Texture' },
+  { value: 'paperTexture', label: 'Paper Texture' }
+];
+
 export const THEME_PRESETS = {
-  darkTheme: {
-    background: '#18181B',
-    surface: '#27272A',
-    text: '#F4F4F5',
-    subtext: '#D4D4D8',
-    accent: '#FB923C',
-    border: '#3F3F46',
-    price: '#FDBA74'
+  minimalBlack: {
+    background: '#FAFAFA',
+    surface: '#FFFFFF',
+    text: '#141414',
+    subtext: '#5B5B5B',
+    accent: '#222222',
+    border: '#D9D9D9',
+    price: '#111111'
   },
   elegantGold: {
     background: '#18130C',
     surface: '#241D12',
     text: '#FDF3D8',
-    subtext: '#F5E5C2',
+    subtext: '#E5D5B1',
     accent: '#C49A33',
     border: '#9F7C2B',
     price: '#EAC66E'
@@ -127,14 +164,14 @@ export const THEME_PRESETS = {
     border: '#A8D5B8',
     price: '#2B7D4E'
   },
-  minimalBlack: {
-    background: '#FAFAFA',
-    surface: '#FFFFFF',
-    text: '#141414',
-    subtext: '#3A3A3A',
-    accent: '#222222',
-    border: '#D9D9D9',
-    price: '#111111'
+  darkTheme: {
+    background: '#18181B',
+    surface: '#27272A',
+    text: '#F4F4F5',
+    subtext: '#D4D4D8',
+    accent: '#FB923C',
+    border: '#3F3F46',
+    price: '#FDBA74'
   }
 };
 
@@ -151,7 +188,7 @@ export function getSpacingDefaults(pageSize, columns) {
     categoryGap: Number((base.categoryGap * columnFactor).toFixed(1)),
     itemGap: Number((base.itemGap * columnFactor).toFixed(1)),
     columnGap: Number((base.columnGap * columnFactor).toFixed(1)),
-    descriptionGap: Number((base.descriptionGap).toFixed(1))
+    descriptionGap: Number(base.descriptionGap.toFixed(1))
   };
 }
 

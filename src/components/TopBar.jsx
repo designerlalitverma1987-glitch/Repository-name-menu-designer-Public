@@ -8,14 +8,14 @@ export default function TopBar({
     <header className="flex items-center justify-between border-b border-stone-300 bg-white px-5 py-3">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-stone-800">Smart Menu Designer</h1>
-        <p className="text-xs text-stone-500">Auto layout menu creator for restaurants</p>
+        <p className="text-xs text-stone-500">Canva-style restaurant menu generator</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={onGenerateDesign}
           className="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-800"
         >
-          Generate Design
+          Generate Menu
         </button>
         <button
           onClick={onDownloadSvg}

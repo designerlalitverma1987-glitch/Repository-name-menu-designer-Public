@@ -5,8 +5,12 @@ import PageSettingsPanel from './components/PageSettingsPanel';
 import StylePanel from './components/StylePanel';
 import PreviewPanel from './components/PreviewPanel';
 import {
+  BACKGROUND_STYLES,
   DEFAULT_FONT_STYLES,
   DEFAULT_MENU_TEXT,
+  DENSITY_MODES,
+  FONT_FAMILIES,
+  FONT_WEIGHTS,
   STYLE_PRESETS,
   THEME_PRESETS,
   getPageDimensions,
@@ -37,19 +41,30 @@ export default function App() {
 
   const [typography, setTypography] = useState(() => getTypographyDefaults('A4'));
   const [spacing, setSpacing] = useState(() => getSpacingDefaults('A4', 2));
+  const [densityMode, setDensityMode] = useState('normal');
 
   const [menuShape, setMenuShape] = useState('rounded');
   const [borderRadius, setBorderRadius] = useState(22);
 
-  const [styleKey, setStyleKey] = useState('minimal');
-  const [generatedStyles, setGeneratedStyles] = useState(['minimal', 'modern', 'fineDining']);
+  const [styleKey, setStyleKey] = useState('classic');
+  const [generatedStyles, setGeneratedStyles] = useState([
+    'classic',
+    'modernMinimal',
+    'premiumFineDining'
+  ]);
 
-  const [themeKey, setThemeKey] = useState(STYLE_PRESETS.minimal.defaultTheme);
+  const [themeKey, setThemeKey] = useState(STYLE_PRESETS.classic.defaultTheme);
   const [useCustomTheme, setUseCustomTheme] = useState(false);
   const [customTheme, setCustomTheme] = useState(THEME_PRESETS.minimalBlack);
 
   const [fontStyles, setFontStyles] = useState(DEFAULT_FONT_STYLES);
+  const [backgroundStyle, setBackgroundStyle] = useState('plainWhite');
+
+  const [logoDataUrl, setLogoDataUrl] = useState('');
+  const [logoSize, setLogoSize] = useState(80);
+
   const [manualTypes, setManualTypes] = useState({});
+  const [sectionOrder, setSectionOrder] = useState([]);
 
   const previewRef = useRef(null);
 
@@ -59,10 +74,34 @@ export default function App() {
   }, [pageSize, columns]);
 
   const parsedMenu = useMemo(() => parseMenuText(menuText), [menuText]);
+
+  useEffect(() => {
+    const ids = parsedMenu.categories.map((category) => category.id);
+    setSectionOrder((prev) => {
+      const kept = prev.filter((id) => ids.includes(id));
+      const appended = ids.filter((id) => !kept.includes(id));
+      return [...kept, ...appended];
+    });
+  }, [parsedMenu.categories]);
+
   const menuData = useMemo(
     () => applyManualOverrides(parsedMenu, manualTypes),
     [parsedMenu, manualTypes]
   );
+
+  const orderedMenuData = useMemo(() => {
+    if (sectionOrder.length === 0) {
+      return menuData;
+    }
+
+    const map = new Map(menuData.categories.map((category) => [category.id, category]));
+    const ordered = sectionOrder.map((id) => map.get(id)).filter(Boolean);
+    const leftovers = menuData.categories.filter((category) => !sectionOrder.includes(category.id));
+
+    return {
+      categories: [...ordered, ...leftovers]
+    };
+  }, [menuData, sectionOrder]);
 
   const page = useMemo(() => getPageDimensions(pageSize, orientation), [pageSize, orientation]);
   const stylePreset = STYLE_PRESETS[styleKey];
@@ -75,14 +114,30 @@ export default function App() {
   const layout = useMemo(
     () =>
       computeMenuLayout({
-        menu: menuData,
+        menu: orderedMenuData,
         page,
         columns,
         typography,
         spacing,
-        radius: menuShape === 'rounded' ? borderRadius : 0
+        radius: menuShape === 'rounded' ? borderRadius : 0,
+        densityMode,
+        template: stylePreset,
+        hasLogo: Boolean(logoDataUrl),
+        logoSize
       }),
-    [menuData, page, columns, typography, spacing, menuShape, borderRadius]
+    [
+      orderedMenuData,
+      page,
+      columns,
+      typography,
+      spacing,
+      menuShape,
+      borderRadius,
+      densityMode,
+      stylePreset,
+      logoDataUrl,
+      logoSize
+    ]
   );
 
   const svgMarkup = useMemo(
@@ -93,9 +148,20 @@ export default function App() {
         menuTitle,
         stylePreset,
         theme: activeTheme,
-        fontStyles
+        fontStyles,
+        logoDataUrl,
+        backgroundStyle
       }),
-    [layout, page, menuTitle, stylePreset, activeTheme, fontStyles]
+    [
+      layout,
+      page,
+      menuTitle,
+      stylePreset,
+      activeTheme,
+      fontStyles,
+      logoDataUrl,
+      backgroundStyle
+    ]
   );
 
   function handleGenerateDesign() {
@@ -111,6 +177,19 @@ export default function App() {
     setMenuTitle(demo.title);
     setMenuText(demo.text);
     setManualTypes({});
+  }
+
+  function handleLogoUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoDataUrl(reader.result ? String(reader.result) : '');
+    };
+    reader.readAsDataURL(file);
   }
 
   function getSvgElement() {
@@ -157,7 +236,7 @@ export default function App() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="w-[360px] shrink-0 space-y-3 overflow-y-auto border-r border-stone-300 bg-stone-50 p-3">
+        <aside className="w-[390px] shrink-0 space-y-3 overflow-y-auto border-r border-stone-300 bg-stone-50 p-3">
           <MenuInputPanel
             menuTitle={menuTitle}
             setMenuTitle={setMenuTitle}
@@ -167,6 +246,8 @@ export default function App() {
             manualTypes={manualTypes}
             setManualTypes={setManualTypes}
             onGenerateDemo={handleGenerateDemoMenu}
+            sectionOrder={sectionOrder}
+            setSectionOrder={setSectionOrder}
           />
 
           <PageSettingsPanel
@@ -183,6 +264,9 @@ export default function App() {
             setTypography={setTypography}
             spacing={spacing}
             setSpacing={setSpacing}
+            densityMode={densityMode}
+            setDensityMode={setDensityMode}
+            densityModes={DENSITY_MODES}
             menuShape={menuShape}
             setMenuShape={setMenuShape}
             borderRadius={borderRadius}
@@ -200,6 +284,15 @@ export default function App() {
             setCustomTheme={setCustomTheme}
             fontStyles={fontStyles}
             setFontStyles={setFontStyles}
+            fontFamilies={FONT_FAMILIES}
+            fontWeights={FONT_WEIGHTS}
+            backgroundStyle={backgroundStyle}
+            setBackgroundStyle={setBackgroundStyle}
+            backgroundStyles={BACKGROUND_STYLES}
+            logoDataUrl={logoDataUrl}
+            logoSize={logoSize}
+            setLogoSize={setLogoSize}
+            onLogoUpload={handleLogoUpload}
           />
         </aside>
 
@@ -208,7 +301,7 @@ export default function App() {
 
           {layout?.overflow && (
             <p className="mx-auto mt-3 max-w-xl rounded-md bg-amber-100 px-3 py-2 text-center text-xs text-amber-900">
-              Content is dense for the selected page. The layout engine auto-shrunk typography and spacing to prevent overflow.
+              Content is dense for the selected page. Smart layout reduced spacing and typography to avoid overflow.
             </p>
           )}
         </main>

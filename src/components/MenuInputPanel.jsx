@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 function Section({ title, children }) {
   return (
     <section className="rounded-lg border border-stone-300 bg-white p-3">
@@ -5,6 +7,19 @@ function Section({ title, children }) {
       {children}
     </section>
   );
+}
+
+function reorder(list, fromId, toId) {
+  const from = list.indexOf(fromId);
+  const to = list.indexOf(toId);
+  if (from < 0 || to < 0 || from === to) {
+    return list;
+  }
+
+  const next = [...list];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
 }
 
 export default function MenuInputPanel({
@@ -15,14 +30,29 @@ export default function MenuInputPanel({
   parsedMenu,
   manualTypes,
   setManualTypes,
-  onGenerateDemo
+  onGenerateDemo,
+  sectionOrder,
+  setSectionOrder
 }) {
+  const [dragId, setDragId] = useState('');
+
   const items = parsedMenu.categories.flatMap((category) =>
     category.items.map((item) => ({
       ...item,
       categoryName: category.name
     }))
   );
+
+  const sectionMap = useMemo(
+    () => new Map(parsedMenu.categories.map((category) => [category.id, category])),
+    [parsedMenu.categories]
+  );
+
+  const orderedSections = useMemo(() => {
+    const fallback = parsedMenu.categories.map((category) => category.id);
+    const ids = sectionOrder.length > 0 ? sectionOrder : fallback;
+    return ids.map((id) => sectionMap.get(id)).filter(Boolean);
+  }, [parsedMenu.categories, sectionOrder, sectionMap]);
 
   return (
     <div className="grid gap-3">
@@ -55,6 +85,33 @@ export default function MenuInputPanel({
           >
             Generate Demo Menu
           </button>
+        </div>
+      </Section>
+
+      <Section title="Drag-Reorder Sections">
+        <div className="space-y-2 text-xs">
+          {orderedSections.length === 0 && <p className="text-stone-500">No sections detected yet.</p>}
+
+          {orderedSections.map((category) => (
+            <div
+              key={category.id}
+              draggable
+              onDragStart={() => setDragId(category.id)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => {
+                if (!dragId || dragId === category.id) {
+                  return;
+                }
+                setSectionOrder((prev) => reorder(prev, dragId, category.id));
+                setDragId('');
+              }}
+              onDragEnd={() => setDragId('')}
+              className="flex cursor-grab items-center justify-between rounded border border-stone-300 bg-stone-50 px-2 py-2 active:cursor-grabbing"
+            >
+              <span className="font-medium text-stone-700">{category.name}</span>
+              <span className="text-[11px] text-stone-500">Drag</span>
+            </div>
+          ))}
         </div>
       </Section>
 

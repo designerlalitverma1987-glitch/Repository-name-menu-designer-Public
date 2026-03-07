@@ -1,3 +1,6 @@
+import TypographyPanel from './TypographyPanel';
+import LayoutSpacingPanel from './LayoutSpacingPanel';
+
 function Section({ title, children }) {
   return (
     <section className="rounded-lg border border-stone-300 bg-white p-3">
@@ -26,26 +29,14 @@ function Slider({ label, min, max, step = 1, value, onChange }) {
   );
 }
 
-function FontInput({ label, value, onChange, placeholder }) {
-  return (
-    <label className="grid gap-1 text-xs">
-      <span className="text-stone-700">{label}</span>
-      <input
-        type="text"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="rounded border border-stone-300 px-2 py-1"
-      />
-    </label>
-  );
-}
-
 export default function StylePanel({
   typography,
   setTypography,
   spacing,
   setSpacing,
+  densityMode,
+  setDensityMode,
+  densityModes,
   menuShape,
   setMenuShape,
   borderRadius,
@@ -62,147 +53,112 @@ export default function StylePanel({
   customTheme,
   setCustomTheme,
   fontStyles,
-  setFontStyles
+  setFontStyles,
+  fontFamilies,
+  fontWeights,
+  backgroundStyle,
+  setBackgroundStyle,
+  backgroundStyles,
+  logoDataUrl,
+  logoSize,
+  setLogoSize,
+  onLogoUpload
 }) {
   const styleKeys = Object.keys(stylePresets);
   const themeKeys = Object.keys(themePresets);
 
   return (
     <div className="grid gap-3">
-      <Section title="Typography Controls">
+      <Section title="Menu Templates">
         <div className="grid gap-2">
-          <Slider
-            label="Menu Title"
-            min={18}
-            max={56}
-            value={Math.round(typography.title)}
-            onChange={(value) => setTypography((prev) => ({ ...prev, title: value }))}
-          />
-          <Slider
-            label="Category"
-            min={16}
-            max={32}
-            value={Math.round(typography.category)}
-            onChange={(value) => setTypography((prev) => ({ ...prev, category: value }))}
-          />
-          <Slider
-            label="Food Item"
-            min={14}
-            max={28}
-            value={Math.round(typography.item)}
-            onChange={(value) => setTypography((prev) => ({ ...prev, item: value }))}
-          />
-          <Slider
-            label="Description"
-            min={10}
-            max={20}
-            value={Math.round(typography.description)}
-            onChange={(value) => setTypography((prev) => ({ ...prev, description: value }))}
-          />
-          <Slider
-            label="Price"
-            min={12}
-            max={24}
-            value={Math.round(typography.price)}
-            onChange={(value) => setTypography((prev) => ({ ...prev, price: value }))}
-          />
-          <Slider
-            label="Line Height"
-            min={1.05}
-            max={1.8}
-            step={0.01}
-            value={Number(typography.lineHeight.toFixed(2))}
-            onChange={(value) => setTypography((prev) => ({ ...prev, lineHeight: value }))}
-          />
-          <Slider
-            label="Letter Spacing"
-            min={-0.2}
-            max={2}
-            step={0.05}
-            value={Number(typography.letterSpacing.toFixed(2))}
-            onChange={(value) => setTypography((prev) => ({ ...prev, letterSpacing: value }))}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            {styleKeys.map((key) => (
+              <button
+                key={key}
+                onClick={() => setStyleKey(key)}
+                className={`rounded border px-2 py-1 text-xs font-medium transition ${
+                  styleKey === key
+                    ? 'border-amber-700 bg-amber-700 text-white'
+                    : 'border-stone-300 bg-white text-stone-700 hover:bg-stone-100'
+                }`}
+              >
+                {stylePresets[key].label}
+              </button>
+            ))}
+          </div>
+
+          <div className="text-xs text-stone-500">
+            Generated picks:
+            <div className="mt-1 flex flex-wrap gap-1">
+              {generatedStyles.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setStyleKey(key)}
+                  className="rounded bg-stone-200 px-2 py-1 text-[11px] font-medium text-stone-700 hover:bg-stone-300"
+                >
+                  {stylePresets[key].label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </Section>
 
-      <Section title="Font Style Controls">
-        <div className="grid gap-2">
-          <FontInput
-            label="fontFamily"
-            value={fontStyles.fontFamily}
-            onChange={(value) => setFontStyles((prev) => ({ ...prev, fontFamily: value }))}
-            placeholder='"DM Sans", sans-serif'
-          />
-          <FontInput
-            label="titleFont"
-            value={fontStyles.titleFont}
-            onChange={(value) => setFontStyles((prev) => ({ ...prev, titleFont: value }))}
-            placeholder='"Playfair Display", serif'
-          />
-          <FontInput
-            label="itemFont"
-            value={fontStyles.itemFont}
-            onChange={(value) => setFontStyles((prev) => ({ ...prev, itemFont: value }))}
-            placeholder='"DM Sans", sans-serif'
-          />
-          <FontInput
-            label="descriptionFont"
-            value={fontStyles.descriptionFont}
-            onChange={(value) => setFontStyles((prev) => ({ ...prev, descriptionFont: value }))}
-            placeholder='"DM Sans", sans-serif'
-          />
-          <FontInput
-            label="priceFont"
-            value={fontStyles.priceFont}
-            onChange={(value) => setFontStyles((prev) => ({ ...prev, priceFont: value }))}
-            placeholder='"DM Sans", sans-serif'
-          />
-        </div>
+      <Section title="Typography Panel">
+        <TypographyPanel
+          typography={typography}
+          setTypography={setTypography}
+          fontStyles={fontStyles}
+          setFontStyles={setFontStyles}
+          fontFamilies={fontFamilies}
+          fontWeights={fontWeights}
+        />
       </Section>
 
-      <Section title="Spacing Controls">
-        <div className="grid gap-2">
+      <Section title="Smart Line Spacing">
+        <LayoutSpacingPanel
+          spacing={spacing}
+          setSpacing={setSpacing}
+          densityMode={densityMode}
+          setDensityMode={setDensityMode}
+          densityModes={densityModes}
+        />
+      </Section>
+
+      <Section title="Background Style">
+        <label className="grid gap-1 text-xs">
+          <span className="text-stone-700">Theme Background</span>
+          <select
+            className="rounded border border-stone-300 px-2 py-1"
+            value={backgroundStyle}
+            onChange={(event) => setBackgroundStyle(event.target.value)}
+          >
+            {backgroundStyles.map((bg) => (
+              <option key={bg.value} value={bg.value}>
+                {bg.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </Section>
+
+      <Section title="Restaurant Logo">
+        <div className="grid gap-2 text-xs">
+          <label className="grid gap-1">
+            <span className="text-stone-700">Upload Logo</span>
+            <input type="file" accept="image/*" onChange={onLogoUpload} />
+          </label>
+
+          {logoDataUrl && (
+            <img src={logoDataUrl} alt="logo" className="h-16 w-16 rounded border border-stone-200 object-contain" />
+          )}
+
           <Slider
-            label="Category Spacing"
-            min={6}
-            max={40}
-            value={Math.round(spacing.categoryGap)}
-            onChange={(value) => setSpacing((prev) => ({ ...prev, categoryGap: value }))}
-          />
-          <Slider
-            label="Item Spacing"
-            min={8}
-            max={28}
-            value={Math.round(spacing.itemGap)}
-            onChange={(value) => setSpacing((prev) => ({ ...prev, itemGap: value }))}
-          />
-          <Slider
-            label="Row/Description Gap"
-            min={2}
-            max={10}
-            value={Math.round(spacing.descriptionGap)}
-            onChange={(value) => setSpacing((prev) => ({ ...prev, descriptionGap: value }))}
-          />
-          <Slider
-            label="Column Gap"
-            min={8}
-            max={60}
-            value={Math.round(spacing.columnGap)}
-            onChange={(value) => setSpacing((prev) => ({ ...prev, columnGap: value }))}
-          />
-          <Slider
-            label="Outer Margin"
-            min={8}
-            max={80}
-            value={Math.round(spacing.margin)}
-            onChange={(value) => setSpacing((prev) => ({ ...prev, margin: value }))}
-          />
-          <Slider
-            label="Padding"
-            min={8}
-            max={80}
-            value={Math.round(spacing.padding)}
-            onChange={(value) => setSpacing((prev) => ({ ...prev, padding: value }))}
+            label="Logo Size"
+            min={40}
+            max={150}
+            value={Math.round(logoSize)}
+            onChange={setLogoSize}
           />
         </div>
       </Section>
@@ -220,6 +176,7 @@ export default function StylePanel({
               <option value="rounded">Rounded Menu</option>
             </select>
           </label>
+
           <Slider
             label="Border Radius"
             min={0}
@@ -227,40 +184,6 @@ export default function StylePanel({
             value={Math.round(borderRadius)}
             onChange={setBorderRadius}
           />
-        </div>
-      </Section>
-
-      <Section title="Design Style Generator">
-        <div className="grid gap-2">
-          <div className="grid grid-cols-2 gap-2">
-            {styleKeys.map((key) => (
-              <button
-                key={key}
-                onClick={() => setStyleKey(key)}
-                className={`rounded border px-2 py-1 text-xs font-medium transition ${
-                  styleKey === key
-                    ? 'border-amber-700 bg-amber-700 text-white'
-                    : 'border-stone-300 bg-white text-stone-700 hover:bg-stone-100'
-                }`}
-              >
-                {stylePresets[key].label}
-              </button>
-            ))}
-          </div>
-          <div className="text-xs text-stone-500">
-            Auto-generated layout picks:
-            <div className="mt-1 flex flex-wrap gap-1">
-              {generatedStyles.map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setStyleKey(key)}
-                  className="rounded bg-stone-200 px-2 py-1 text-[11px] font-medium text-stone-700 hover:bg-stone-300"
-                >
-                  {stylePresets[key].label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </Section>
 
