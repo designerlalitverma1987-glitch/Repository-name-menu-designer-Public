@@ -119,6 +119,13 @@ export function addImageToCanvas(canvas, source, options = {}) {
 }
 
 export function createShapeObject(shape, options = {}) {
+  const baseData = {
+    label: options.data?.label || shape,
+    shapeType: shape,
+    cornerRadii: options.data?.cornerRadii || { tl: 0, tr: 0, br: 0, bl: 0 },
+    ...(options.data || {})
+  };
+
   const common = {
     left: options.left ?? 100,
     top: options.top ?? 100,
@@ -127,15 +134,28 @@ export function createShapeObject(shape, options = {}) {
     strokeWidth: options.strokeWidth ?? 2,
     opacity: options.opacity ?? 1,
     angle: options.angle ?? 0,
-    data: options.data || {}
+    data: baseData
   };
 
   if (shape === 'rectangle') {
-    return new fabric.Rect({ ...common, width: options.width ?? 140, height: options.height ?? 80, rx: 8, ry: 8 });
+    return new fabric.Rect({
+      ...common,
+      width: options.width ?? 140,
+      height: options.height ?? 80,
+      rx: options.rx ?? 8,
+      ry: options.ry ?? 8
+    });
   }
+
   if (shape === 'circle') {
-    return new fabric.Circle({ ...common, radius: options.radius ?? 50 });
+    const diameter = Math.max(20, options.diameter ?? options.width ?? options.height ?? 110);
+    return new fabric.Circle({
+      ...common,
+      radius: diameter / 2,
+      fill: options.fill ?? 'transparent'
+    });
   }
+
   if (shape === 'line') {
     return new fabric.Line([0, 0, options.width ?? 160, 0], {
       ...common,
@@ -143,6 +163,7 @@ export function createShapeObject(shape, options = {}) {
       stroke: options.stroke ?? '#334155'
     });
   }
+
   if (shape === 'divider') {
     return new fabric.Line([0, 0, options.width ?? 180, 0], {
       ...common,
@@ -150,6 +171,7 @@ export function createShapeObject(shape, options = {}) {
       fill: 'transparent'
     });
   }
+
   if (shape === 'banner') {
     return new fabric.Rect({
       ...common,
@@ -161,6 +183,7 @@ export function createShapeObject(shape, options = {}) {
       stroke: options.stroke ?? '#B45309'
     });
   }
+
   if (shape === 'badge') {
     return new fabric.Circle({
       ...common,
@@ -170,7 +193,14 @@ export function createShapeObject(shape, options = {}) {
     });
   }
 
-  return new fabric.Rect({ ...common, width: options.width ?? 180, height: options.height ?? 120, rx: 3, ry: 3, fill: 'transparent' });
+  return new fabric.Rect({
+    ...common,
+    width: options.width ?? 180,
+    height: options.height ?? 120,
+    rx: 3,
+    ry: 3,
+    fill: 'transparent'
+  });
 }
 
 function createFssaiIcon(type, left, top, size = 12, data = {}) {
@@ -545,3 +575,4 @@ export function cloneActiveObject(canvas, activeObject) {
     });
   });
 }
+

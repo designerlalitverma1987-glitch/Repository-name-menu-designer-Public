@@ -251,7 +251,7 @@ function loadCustomTemplates() {
 }
 
 function makePage(id, name, backgroundStyle = 'plainWhite') {
-  return { id, name, backgroundStyle, json: null, logoDataUrl: '' };
+  return { id, name, backgroundStyle, backgroundColor: '#ffffff', json: null, logoDataUrl: '' };
 }
 
 function ensureOrder(categories, previousOrder) {
@@ -333,6 +333,7 @@ export default function App() {
   const historyRef = useRef({});
 
   const [openPanel, setOpenPanel] = useState('menu');
+  const [activeTool, setActiveTool] = useState('select');
   const [pageSize, setPageSize] = useState('A4');
   const [orientation, setOrientation] = useState('portrait');
   const page = useMemo(() => getPageDimensions(pageSize, orientation), [pageSize, orientation]);
@@ -349,6 +350,7 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState('auto');
   const [typography, setTypography] = useState(createDefaultTypography);
   const [backgroundStyle, setBackgroundStyle] = useState('plainWhite');
+  const [pageBackgroundColor, setPageBackgroundColor] = useState('#ffffff');
   const [snapToGrid, setSnapToGrid] = useState(false);
 
   const [selectedObject, setSelectedObject] = useState(null);
@@ -365,6 +367,37 @@ export default function App() {
   const [aiDescriptions, setAiDescriptions] = useState(true);
 
   const parsedMenu = useMemo(() => parseMenuText(menuText), [menuText]);
+
+  const snapToGridRef = useRef(false);
+  const activeToolRef = useRef('select');
+  const typographyRef = useRef(createDefaultTypography());
+  const backgroundStyleRef = useRef('plainWhite');
+  const logoDataUrlRef = useRef('');
+  const pageBackgroundColorRef = useRef('#ffffff');
+
+  useEffect(() => {
+    snapToGridRef.current = snapToGrid;
+  }, [snapToGrid]);
+
+  useEffect(() => {
+    activeToolRef.current = activeTool;
+  }, [activeTool]);
+
+  useEffect(() => {
+    typographyRef.current = typography;
+  }, [typography]);
+
+  useEffect(() => {
+    backgroundStyleRef.current = backgroundStyle;
+  }, [backgroundStyle]);
+
+  useEffect(() => {
+    logoDataUrlRef.current = logoDataUrl;
+  }, [logoDataUrl]);
+
+  useEffect(() => {
+    pageBackgroundColorRef.current = pageBackgroundColor;
+  }, [pageBackgroundColor]);
 
   useEffect(() => {
     activePageIdRef.current = activePageId;
@@ -410,6 +443,16 @@ export default function App() {
         return;
       }
 
+      const isText = ['textbox', 'text', 'i-text'].includes(active.type);
+      const isRect = active.type === 'rect';
+      const isCircle = active.type === 'circle';
+      const isLine = active.type === 'line';
+      const isShape = isRect || isCircle || isLine;
+      const isIcon = active.type === 'group' && !isText;
+      const borderStyle = active.strokeDashArray && active.strokeDashArray.length > 0 ? 'dashed' : 'solid';
+      const cornerData =
+        active.data?.cornerRadii || { tl: active.rx || 0, tr: active.rx || 0, br: active.rx || 0, bl: active.rx || 0 };
+
       setSelectedObject({
         id: active.__uid || active.data?.id || active.type,
         label: active.data?.label || active.type,
@@ -419,7 +462,29 @@ export default function App() {
         height: active.getScaledHeight?.() || 0,
         angle: active.angle || 0,
         opacity: active.opacity ?? 1,
-        color: objectColor(active)
+        fill: typeof active.fill === 'string' ? active.fill : '#ffffff',
+        stroke: typeof active.stroke === 'string' ? active.stroke : '#111827',
+        strokeWidth: active.strokeWidth || 0,
+        borderStyle,
+        lockAspect: Boolean(active.lockUniScaling || active.data?.lockAspect),
+        cornerRadius: active.rx || 0,
+        cornerTL: cornerData.tl || 0,
+        cornerTR: cornerData.tr || 0,
+        cornerBR: cornerData.br || 0,
+        cornerBL: cornerData.bl || 0,
+        isText,
+        isShape,
+        isIcon,
+        isRect,
+        isCircle,
+        isLine,
+        fontFamily: active.fontFamily,
+        fontSize: active.fontSize,
+        fontWeight: active.fontWeight,
+        textAlign: active.textAlign,
+        lineHeight: active.lineHeight,
+        letterSpacing: (active.charSpacing || 0) / 50,
+        wrap: active.data?.wrap !== false
       });
     };
 
@@ -439,7 +504,7 @@ export default function App() {
       setPages((prev) =>
         prev.map((pageItem) =>
           pageItem.id === pageId
-            ? { ...pageItem, json: JSON.parse(snapshot), backgroundStyle, logoDataUrl }
+            ? { ...pageItem, json: JSON.parse(snapshot), backgroundStyle: backgroundStyleRef.current, backgroundColor: pageBackgroundColorRef.current, logoDataUrl: logoDataUrlRef.current }
             : pageItem
         )
       );
@@ -449,10 +514,77 @@ export default function App() {
     canvas.on('selection:updated', syncSelection);
     canvas.on('selection:cleared', syncSelection);
 
+    canvas.on('mouse:down', (event) => {
+      if (event.target) {
+        return;
+      }
+
+      const tool = activeToolRef.current;
+      if (tool === 'select') {
+        return;
+      }
+
+      const pointer = canvas.getPointer(event.e);
+      const base = {
+        left: pointer.x,
+        top: pointer.y,
+        data: { label: tool.charAt(0).toUpperCase() + tool.slice(1), lockAspect: tool === 'circle' }
+      };
+
+      let created = null;
+      if (tool === 'text') {
+        const typo = typographyRef.current;
+        created = new fabric.Textbox('New Text', {
+          ...base,
+          width: 240,
+          fontFamily: typo.itemFont,
+          fontSize: typo.itemSize,
+          fontWeight: typo.itemWeight,
+          fill: typo.itemColor,
+          lineHeight: 1.2,
+          charSpacing: typo.letterSpacing * 50,
+          textAlign: 'left',
+          data: { ...base.data, label: 'Text', wrap: true }
+        });
+      } else if (tool === 'rectangle') {
+        created = createShapeObject('rectangle', {
+          ...base,
+          width: 160,
+          height: 90,
+          fill: '#ffffff',
+          stroke: '#334155',
+          data: { ...base.data, shapeType: 'rectangle' }
+        });
+      } else if (tool === 'circle') {
+        created = createShapeObject('circle', {
+          ...base,
+          diameter: 120,
+          fill: '#ffffff',
+          stroke: '#334155',
+          data: { ...base.data, shapeType: 'circle', lockAspect: true }
+        });
+      } else if (tool === 'line') {
+        created = createShapeObject('line', {
+          ...base,
+          width: 180,
+          stroke: '#334155',
+          data: { ...base.data, shapeType: 'line', lockAspect: true }
+        });
+      }
+
+      if (created) {
+        canvas.add(created);
+        canvas.setActiveObject(created);
+        canvas.requestRenderAll();
+      }
+
+      setActiveTool('select');
+    });
+
     canvas.on('object:moving', (event) => {
       if (!event.target) return;
 
-      if (snapToGrid) {
+      if (snapToGridRef.current) {
         event.target.set({
           left: Math.round((event.target.left || 0) / GRID_SIZE) * GRID_SIZE,
           top: Math.round((event.target.top || 0) / GRID_SIZE) * GRID_SIZE
@@ -460,11 +592,27 @@ export default function App() {
       }
 
       clampToCanvasBounds(event.target, canvas.getWidth(), canvas.getHeight());
+      syncSelection();
     });
 
-    canvas.on('object:modified', commitHistory);
+    canvas.on('object:scaling', (event) => {
+      if (!event.target) return;
+      if (event.target.lockUniScaling || event.target.data?.lockAspect) {
+        event.target.lockUniScaling = true;
+      }
+      clampToCanvasBounds(event.target, canvas.getWidth(), canvas.getHeight());
+      syncSelection();
+    });
+
+    canvas.on('object:modified', () => {
+      syncSelection();
+      commitHistory();
+    });
     canvas.on('object:added', commitHistory);
-    canvas.on('object:removed', commitHistory);
+    canvas.on('object:removed', () => {
+      syncSelection();
+      commitHistory();
+    });
 
     historyRef.current[activePageIdRef.current] = {
       undo: [JSON.stringify(canvas.toJSON(EXTRA_JSON_PROPS))],
@@ -483,9 +631,14 @@ export default function App() {
 
     canvas.setWidth(page.width);
     canvas.setHeight(page.height);
-    applyBackgroundStyle(canvas, activePage?.backgroundStyle || backgroundStyle, page);
-    canvas.requestRenderAll();
-  }, [page.width, page.height, backgroundStyle, activePage?.backgroundStyle]);
+    applyBackgroundStyle(canvas, activePage?.backgroundStyle || backgroundStyle, page).then(() => {
+      if ((activePage?.backgroundStyle || backgroundStyle) === 'none') {
+        canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+        canvas.setBackgroundColor(pageBackgroundColor, canvas.renderAll.bind(canvas));
+      }
+      canvas.requestRenderAll();
+    });
+  }, [page.width, page.height, backgroundStyle, activePage?.backgroundStyle, pageBackgroundColor]);
 
   const loadPageToCanvas = useCallback(
     async (pageItem) => {
@@ -511,6 +664,12 @@ export default function App() {
       });
 
       await applyBackgroundStyle(canvas, pageItem.backgroundStyle || backgroundStyle, page);
+      const nextBackgroundColor = pageItem.backgroundColor || '#ffffff';
+      setPageBackgroundColor(nextBackgroundColor);
+      if ((pageItem.backgroundStyle || backgroundStyle) === 'none') {
+        canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+        canvas.setBackgroundColor(nextBackgroundColor, canvas.renderAll.bind(canvas));
+      }
       canvas.requestRenderAll();
       setLogoDataUrl(pageItem.logoDataUrl || '');
 
@@ -873,11 +1032,17 @@ export default function App() {
       }
 
       if (payload.kind === 'shape') {
+        const lockAspect = payload.shapeType === 'circle' || payload.shapeType === 'line';
         const shape = createShapeObject(payload.shapeType, {
           left: x,
           top: y,
-          data: { label: payload.label || payload.shapeType }
+          data: {
+            label: payload.label || payload.shapeType,
+            shapeType: payload.shapeType,
+            lockAspect
+          }
         });
+        shape.lockUniScaling = lockAspect;
         canvas.add(shape);
         canvas.setActiveObject(shape);
         canvas.requestRenderAll();
@@ -926,15 +1091,136 @@ export default function App() {
 
     if (typeof patch.left === 'number') active.set('left', patch.left);
     if (typeof patch.top === 'number') active.set('top', patch.top);
-    if (typeof patch.width === 'number') active.scaleToWidth(Math.max(8, patch.width));
-    if (typeof patch.height === 'number') active.scaleToHeight(Math.max(8, patch.height));
+
+    if (typeof patch.lockAspect === 'boolean') {
+      active.lockUniScaling = patch.lockAspect;
+      active.set({
+        data: {
+          ...(active.data || {}),
+          lockAspect: patch.lockAspect
+        }
+      });
+    }
+
+    if (typeof patch.width === 'number') {
+      active.scaleToWidth(Math.max(8, patch.width));
+    }
+    if (typeof patch.height === 'number') {
+      if (active.lockUniScaling || active.data?.lockAspect) {
+        active.scaleToHeight(Math.max(8, patch.height));
+      } else {
+        active.scaleToHeight(Math.max(8, patch.height));
+      }
+    }
+
+    if (typeof patch.textboxWidth === 'number' && ['textbox', 'text', 'i-text'].includes(active.type)) {
+      active.set('width', Math.max(20, patch.textboxWidth));
+    }
+
+    if (typeof patch.wrap === 'boolean' && ['textbox', 'text', 'i-text'].includes(active.type)) {
+      const nextData = { ...(active.data || {}), wrap: patch.wrap };
+      if (!patch.wrap) {
+        active.set('width', Math.max(active.width || 0, active.calcTextWidth() + 16));
+      }
+      active.set({ data: nextData });
+    }
+
+    if (typeof patch.fontFamily === 'string') active.set('fontFamily', patch.fontFamily);
+    if (typeof patch.fontSize === 'number') active.set('fontSize', patch.fontSize);
+    if (typeof patch.fontWeight !== 'undefined') active.set('fontWeight', patch.fontWeight);
+    if (typeof patch.textAlign === 'string') active.set('textAlign', patch.textAlign);
+    if (typeof patch.lineHeight === 'number') active.set('lineHeight', patch.lineHeight);
+    if (typeof patch.letterSpacing === 'number') active.set('charSpacing', patch.letterSpacing * 50);
+
+    if (typeof patch.fill === 'string') {
+      if (active.type === 'group' && Array.isArray(active._objects)) {
+        active._objects.forEach((item) => {
+          if (item.fill && item.fill !== 'transparent') item.set('fill', patch.fill);
+        });
+      } else {
+        active.set('fill', patch.fill);
+      }
+    }
+
+    if (typeof patch.stroke === 'string') {
+      if (active.type === 'group' && Array.isArray(active._objects)) {
+        active._objects.forEach((item) => {
+          if (item.stroke) item.set('stroke', patch.stroke);
+        });
+      } else {
+        active.set('stroke', patch.stroke);
+      }
+    }
+
+    if (typeof patch.strokeWidth === 'number') {
+      if (active.type === 'group' && Array.isArray(active._objects)) {
+        active._objects.forEach((item) => {
+          if (item.strokeWidth !== undefined) item.set('strokeWidth', patch.strokeWidth);
+        });
+      } else {
+        active.set('strokeWidth', patch.strokeWidth);
+      }
+    }
+
+    if (typeof patch.borderStyle === 'string') {
+      const dash = patch.borderStyle === 'dashed' ? [8, 6] : null;
+      if (active.type === 'group' && Array.isArray(active._objects)) {
+        active._objects.forEach((item) => {
+          if (item.stroke !== undefined) item.set('strokeDashArray', dash);
+        });
+      } else {
+        active.set('strokeDashArray', dash);
+      }
+    }
+
+    const applyCorner = (radius) => {
+      if (active.type === 'rect') {
+        active.set({ rx: radius, ry: radius });
+      }
+    };
+
+    if (typeof patch.cornerRadius === 'number') {
+      applyCorner(patch.cornerRadius);
+      active.set({
+        data: {
+          ...(active.data || {}),
+          cornerRadii: {
+            tl: patch.cornerRadius,
+            tr: patch.cornerRadius,
+            br: patch.cornerRadius,
+            bl: patch.cornerRadius
+          }
+        }
+      });
+    }
+
+    if (
+      patch.cornerTL !== undefined ||
+      patch.cornerTR !== undefined ||
+      patch.cornerBR !== undefined ||
+      patch.cornerBL !== undefined
+    ) {
+      const current = active.data?.cornerRadii || { tl: active.rx || 0, tr: active.rx || 0, br: active.rx || 0, bl: active.rx || 0 };
+      const cornerRadii = {
+        tl: patch.cornerTL ?? current.tl,
+        tr: patch.cornerTR ?? current.tr,
+        br: patch.cornerBR ?? current.br,
+        bl: patch.cornerBL ?? current.bl
+      };
+      const effective = Math.max(cornerRadii.tl, cornerRadii.tr, cornerRadii.br, cornerRadii.bl);
+      applyCorner(effective);
+      active.set({ data: { ...(active.data || {}), cornerRadii } });
+    }
+
     if (typeof patch.angle === 'number') active.set('angle', patch.angle);
     if (typeof patch.opacity === 'number') active.set('opacity', Math.min(1, Math.max(0.1, patch.opacity)));
+
     if (typeof patch.color === 'string') updateObjectColor(active, patch.color);
 
     clampToCanvasBounds(active, canvas.getWidth(), canvas.getHeight());
     active.setCoords();
     canvas.requestRenderAll();
+    canvas.fire('selection:updated');
   }, []);
 
   const bringForward = useCallback(() => {
@@ -1004,6 +1290,37 @@ export default function App() {
     [activePageId, page]
   );
 
+  const handlePagePatch = useCallback(
+    (patch) => {
+      if (patch.pageSize) {
+        setPageSize(patch.pageSize);
+      }
+      if (patch.orientation) {
+        setOrientation(patch.orientation);
+      }
+
+      if (patch.backgroundColor) {
+        const color = patch.backgroundColor;
+        setPageBackgroundColor(color);
+        setBackgroundStyle('none');
+        setPages((prev) =>
+          prev.map((pageItem) =>
+            pageItem.id === activePageId
+              ? { ...pageItem, backgroundColor: color, backgroundStyle: 'none' }
+              : pageItem
+          )
+        );
+
+        const canvas = fabricRef.current;
+        if (canvas) {
+          canvas.setBackgroundImage(null, canvas.renderAll.bind(canvas));
+          canvas.setBackgroundColor(color, canvas.renderAll.bind(canvas));
+          canvas.requestRenderAll();
+        }
+      }
+    },
+    [activePageId]
+  );
   const handleGenerateAiMenu = useCallback(() => {
     const generated = generateAiMenu({
       restaurantType: aiRestaurantType,
@@ -1456,12 +1773,13 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col bg-stone-100">
       <EditorToolbar
+        activeTool={activeTool}
+        onSelectTool={setActiveTool}
         onGenerateMenu={handleGenerateMenu}
         onAutoArrange={autoArrange}
         onAddPage={addPage}
         onResetDesign={resetDesign}
         onDownloadSvg={handleDownloadSvg}
-        onDownloadPng={handleDownloadPng}
         onDownloadPptx={handleDownloadPptx}
         onDownloadPdf={handleDownloadPdf}
       />
@@ -1487,8 +1805,29 @@ export default function App() {
           onSendBackward={sendBackward}
           snapToGrid={snapToGrid}
           setSnapToGrid={setSnapToGrid}
+          fontFamilies={FONT_FAMILIES}
+          pageSettings={{ pageSize, orientation, backgroundColor: pageBackgroundColor }}
+          onPagePatch={handlePagePatch}
         />
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
